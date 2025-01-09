@@ -4,6 +4,10 @@ require("colors");
 
 const app = express();
 
+app.get("/", (req, res) => {
+    res.send("<h1>Chào mừng bạn đến với ứng dụng của tôi!</h1><p>Đây là một ví dụ hiển thị chữ đơn giản.</p>");
+});
+
 // Cookie trực tiếp trong code
 const COOKIE = "sb=7W7-Zrs361QPN5PYjpTVzs48;datr=7W7-Zg2akABlM-ADlV1qDfZn;vpd=v1%3B736x393x2.75;ps_l=1;ps_n=1;locale=vi_VN;m_pixel_ratio=2.75;wd=393x736;c_user=61563608371247;fr=0dQMMga8bVF1zOqpV.AWU3gbR1YOb3qmVMBObNjvM2Wbs.Bm_m7t..AAA.0.0.Bnf7pI.AWWqumafFGA;xs=37%3AJylextEOpmr_Fw%3A2%3A1736424009%3A-1%3A11391;fbl_st=101525056%3BT%3A28940400;wl_cbv=v2%3Bclient_version%3A2710%3Btimestamp%3A1736424015;"; // Thay `your_cookie_here` bằng giá trị cookie của bạn
 
