@@ -83,13 +83,6 @@ class Share {
                     console.log("[ ERROR ]:".brightWhite + ` Failed to share post for ID ${id}.`.brightRed, err.message);
                 });
         }, 1000); // Gửi yêu cầu mỗi giây
-
-        // Dừng buff sau 1 phút
-        setTimeout(() => {
-            clearInterval(interval);
-            activeBuffs.delete(id); // Xóa ID khỏi danh sách đang buff
-            console.log(`[ INFO ]: Buff stopped automatically for ID ${id}.`.brightYellow);
-        }, 60000); // 1 phút
     }
 }
 
