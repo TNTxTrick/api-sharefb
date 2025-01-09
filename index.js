@@ -5,7 +5,7 @@ require("colors");
 const app = express();
 
 app.get("/", (req, res) => {
-    res.send("<h1>Share Ảo Facebook!</h1><p>tntxtrick</p>");
+    res.send("<h1>Facebook Share!</h1><p>tntxtrick</p>");
 });
 
 // Cookie trực tiếp trong code
