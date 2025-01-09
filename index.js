@@ -26,22 +26,19 @@ const headers = {
 let activeBuffs = new Map();
 
 class Share {
-    getToken() {
-        return new Promise((resolve, reject) => {
+    async getToken() {
+        try {
             headers["cookie"] = COOKIE; // Thêm cookie trực tiếp
-            axios
-                .get("https://business.facebook.com/content_management", { headers })
-                .then((res) => {
-                    const accessToken = "EAAG" + res.data.split("EAAG")[1].split('","')[0];
-                    resolve({
-                        accessToken,
-                        cookie: headers["cookie"],
-                    });
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-        });
+            const response = await axios.get("https://business.facebook.com/content_management", { headers });
+            const accessToken = "EAAG" + response.data.split("EAAG")[1].split('","')[0];
+            return {
+                accessToken,
+                cookie: headers["cookie"],
+            };
+        } catch (err) {
+            console.error(`[ ERROR ]: Failed to fetch token`.brightRed, err.message);
+            throw new Error("Unable to fetch access token.");
+        }
     }
 
     share(token, cookie, id) {
@@ -71,7 +68,7 @@ class Share {
                     count++; // Tăng bộ đếm
                 })
                 .catch((err) => {
-                    console.log("[ ERROR ]:".brightWhite + " Feature blocked!".brightRed);
+                    console.log("[ ERROR ]:".brightWhite + ` Failed to share post for ID ${id}.`.brightRed, err.message);
                 });
         }, 1000); // Gửi yêu cầu mỗi giây
 
@@ -114,7 +111,7 @@ app.get("/api/share", async (req, res) => {
         shareInstance.share(accessToken, cookie, id);
         res.status(200).json({ message: `Buff started successfully for ID ${id}.` });
     } catch (error) {
-        console.error(error.message);
+        console.error(`[ ERROR ]: ${error.message}`.brightRed);
         res.status(500).json({ error: "An error occurred while sharing." });
     }
 });
