@@ -10,35 +10,23 @@ app.get("/", (req, res) => {
 
 // Cookie trực tiếp trong code
 const COOKIE = "sb=7W7-Zrs361QPN5PYjpTVzs48;datr=7W7-Zg2akABlM-ADlV1qDfZn;vpd=v1%3B736x393x2.75;ps_l=1;ps_n=1;locale=vi_VN;m_pixel_ratio=2.75;wd=393x736;c_user=61563608371247;fr=0dQMMga8bVF1zOqpV.AWU3gbR1YOb3qmVMBObNjvM2Wbs.Bm_m7t..AAA.0.0.Bnf7pI.AWWqumafFGA;xs=37%3AJylextEOpmr_Fw%3A2%3A1736424009%3A-1%3A11391;fbl_st=101525056%3BT%3A28940400;wl_cbv=v2%3Bclient_version%3A2710%3Btimestamp%3A1736424015;"; // Thay bằng cookie của bạn
+ // Thay bằng cookie của bạn
 
 const headers = {
-    'authority': 'business.facebook.com',
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-    'accept-language': 'en-US,en;q=0.9',
-    'sec-ch-ua': '"Google Chrome";v="107", "Chromium";v="107", "Not=A?Brand";v="24"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': "Windows",
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
+    'accept': '*/*',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
 };
 
-// Bộ đếm số lần buff mỗi ngày
-let dailyBuffCounts = {};
-
-// Reset bộ đếm buff hàng ngày
-setInterval(() => {
-    dailyBuffCounts = {};
-    console.log("[ INFO ]: Reset daily buff counts.".brightYellow);
-}, 24 * 60 * 60 * 1000); // Reset mỗi 24 giờ
+// Trạng thái xử lý cho từng ID
+const processingIDs = new Set();
 
 class Share {
+    // Lấy access token từ Facebook
     async getToken() {
         try {
-            headers["cookie"] = COOKIE; // Thêm cookie trực tiếp
+            headers["cookie"] = COOKIE;
             const response = await axios.get("https://business.facebook.com/content_management", { headers });
             const accessToken = "EAAG" + response.data.split("EAAG")[1].split('","')[0];
             return {
@@ -51,18 +39,24 @@ class Share {
         }
     }
 
-    share(token, cookie, id) {
-        delete headers.authority;
-        delete headers.accept;
-        delete headers["accept-language"];
-        headers["accept-encoding"] = "gzip, deflate";
-        headers["host"] = "graph.facebook.com";
+    // Thực hiện buff chia sẻ
+    async share(token, cookie, id) {
+        if (processingIDs.has(id)) {
+            console.log(`[ INFO ]: Buff for ID ${id} is already in progress.`.brightYellow);
+            return;
+        }
+
+        // Đánh dấu ID đang được xử lý
+        processingIDs.add(id);
+
         headers["cookie"] = cookie;
+        headers["host"] = "graph.facebook.com";
 
         let count = 0; // Số lần chia sẻ hiện tại
         const interval = setInterval(() => {
-            if (count >= 60) { // Buff tối đa 60 lần/lần chạy
+            if (count >= 60) { // Giới hạn 60 lần chia sẻ mỗi phiên
                 clearInterval(interval);
+                processingIDs.delete(id); // Gỡ trạng thái sau khi hoàn tất
                 console.log(`[ INFO ]: Finished buffing for ID ${id}.`.brightYellow);
                 return;
             }
@@ -74,7 +68,7 @@ class Share {
             })
                 .then((res) => {
                     console.log("[ SUCCESS ]: ".brightWhite + `Shared post ID: ${res.data.id}`.brightGreen);
-                    count++; // Tăng bộ đếm cho lần chạy này
+                    count++; // Tăng bộ đếm mỗi lần chia sẻ thành công
                 })
                 .catch((err) => {
                     console.log("[ ERROR ]:".brightWhite + ` Failed to share post for ID ${id}.`.brightRed, err.message);
@@ -85,7 +79,7 @@ class Share {
 
 const shareInstance = new Share();
 
-// API endpoint
+// API endpoint cho phép buff lại ngay sau khi hoàn tất
 app.get("/api/share", async (req, res) => {
     try {
         const { id } = req.query; // Lấy `id` từ query string
@@ -93,7 +87,7 @@ app.get("/api/share", async (req, res) => {
             return res.status(400).json({ error: "Missing 'id' parameter in query." });
         }
 
-        // Không giới hạn số lần buff/ngày
+        // Thực hiện buff
         const { accessToken, cookie } = await shareInstance.getToken();
         shareInstance.share(accessToken, cookie, id);
         res.status(200).json({ message: `Buff started successfully for ID ${id}.` });
