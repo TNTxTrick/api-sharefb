@@ -10,7 +10,6 @@ app.get("/", (req, res) => {
 
 // Cookie trực tiếp trong code
 const COOKIE = "sb=7W7-Zrs361QPN5PYjpTVzs48;datr=7W7-Zg2akABlM-ADlV1qDfZn;vpd=v1%3B736x393x2.75;ps_l=1;ps_n=1;locale=vi_VN;m_pixel_ratio=2.75;wd=393x736;c_user=61563608371247;fr=0dQMMga8bVF1zOqpV.AWU3gbR1YOb3qmVMBObNjvM2Wbs.Bm_m7t..AAA.0.0.Bnf7pI.AWWqumafFGA;xs=37%3AJylextEOpmr_Fw%3A2%3A1736424009%3A-1%3A11391;fbl_st=101525056%3BT%3A28940400;wl_cbv=v2%3Bclient_version%3A2710%3Btimestamp%3A1736424015;"; // Thay bằng cookie của bạn
- // Thay bằng cookie của bạn
 
 const headers = {
     'authority': 'business.facebook.com',
@@ -62,7 +61,7 @@ class Share {
 
         let count = 0; // Số lần chia sẻ hiện tại
         const interval = setInterval(() => {
-            if (count >= 60 || dailyBuffCounts[id] >= 100) { // Buff tối đa 60 lần/lần hoặc 100 lần/ngày
+            if (count >= 60) { // Buff tối đa 60 lần/lần chạy
                 clearInterval(interval);
                 console.log(`[ INFO ]: Finished buffing for ID ${id}.`.brightYellow);
                 return;
@@ -76,7 +75,6 @@ class Share {
                 .then((res) => {
                     console.log("[ SUCCESS ]: ".brightWhite + `Shared post ID: ${res.data.id}`.brightGreen);
                     count++; // Tăng bộ đếm cho lần chạy này
-                    dailyBuffCounts[id] = (dailyBuffCounts[id] || 0) + 1; // Tăng bộ đếm buff trong ngày
                 })
                 .catch((err) => {
                     console.log("[ ERROR ]:".brightWhite + ` Failed to share post for ID ${id}.`.brightRed, err.message);
@@ -95,14 +93,7 @@ app.get("/api/share", async (req, res) => {
             return res.status(400).json({ error: "Missing 'id' parameter in query." });
         }
 
-        // Kiểm tra giới hạn buff trong ngày
-        if (dailyBuffCounts[id] && dailyBuffCounts[id] >= 100) {
-            return res.status(429).json({
-                error: `ID ${id} has reached the daily buff limit of 100.`,
-            });
-        }
-
-        // Lấy token và bắt đầu buff
+        // Không giới hạn số lần buff/ngày
         const { accessToken, cookie } = await shareInstance.getToken();
         shareInstance.share(accessToken, cookie, id);
         res.status(200).json({ message: `Buff started successfully for ID ${id}.` });
