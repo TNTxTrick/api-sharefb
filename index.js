@@ -10,6 +10,7 @@ app.get("/", (req, res) => {
 
 // Cookie trực tiếp trong code
 const COOKIE = "sb=7W7-Zrs361QPN5PYjpTVzs48;datr=7W7-Zg2akABlM-ADlV1qDfZn;vpd=v1%3B736x393x2.75;ps_l=1;ps_n=1;locale=vi_VN;m_pixel_ratio=2.75;wd=393x736;c_user=61563608371247;fr=0dQMMga8bVF1zOqpV.AWU3gbR1YOb3qmVMBObNjvM2Wbs.Bm_m7t..AAA.0.0.Bnf7pI.AWWqumafFGA;xs=37%3AJylextEOpmr_Fw%3A2%3A1736424009%3A-1%3A11391;fbl_st=101525056%3BT%3A28940400;wl_cbv=v2%3Bclient_version%3A2710%3Btimestamp%3A1736424015;"; // Thay bằng cookie của bạn
+ // Thay bằng cookie của bạn
 
 const headers = {
     'authority': 'business.facebook.com',
@@ -26,11 +27,10 @@ const headers = {
     'upgrade-insecure-requests': '1',
 };
 
-// Bộ lưu trạng thái và đếm số lần buff mỗi ID
-let activeBuffs = new Map(); // Theo dõi ID đang được buff
-let dailyBuffCounts = {}; // Lưu số lượng buff mỗi ngày cho từng ID
+// Bộ đếm số lần buff mỗi ngày
+let dailyBuffCounts = {};
 
-// Reset số lần buff mỗi ngày
+// Reset bộ đếm buff hàng ngày
 setInterval(() => {
     dailyBuffCounts = {};
     console.log("[ INFO ]: Reset daily buff counts.".brightYellow);
@@ -64,7 +64,6 @@ class Share {
         const interval = setInterval(() => {
             if (count >= 60 || dailyBuffCounts[id] >= 100) { // Buff tối đa 60 lần/lần hoặc 100 lần/ngày
                 clearInterval(interval);
-                activeBuffs.delete(id); // Xóa ID khỏi danh sách đang buff
                 console.log(`[ INFO ]: Finished buffing for ID ${id}.`.brightYellow);
                 return;
             }
@@ -96,20 +95,6 @@ app.get("/api/share", async (req, res) => {
             return res.status(400).json({ error: "Missing 'id' parameter in query." });
         }
 
-        // Kiểm tra nếu ID đã được buff
-        if (activeBuffs.has(id)) {
-            return res.status(400).json({
-                error: `ID ${id} is currently being buffed. Please wait until it completes.`,
-            });
-        }
-
-        // Kiểm tra số lượng ID đang được buff (giới hạn 2 ID đồng thời)
-        if (activeBuffs.size >= 2) {
-            return res.status(429).json({
-                error: "Too many concurrent buffs. Only 2 IDs can be buffed simultaneously.",
-            });
-        }
-
         // Kiểm tra giới hạn buff trong ngày
         if (dailyBuffCounts[id] && dailyBuffCounts[id] >= 100) {
             return res.status(429).json({
@@ -119,7 +104,6 @@ app.get("/api/share", async (req, res) => {
 
         // Lấy token và bắt đầu buff
         const { accessToken, cookie } = await shareInstance.getToken();
-        activeBuffs.set(id, true); // Thêm ID vào danh sách đang buff
         shareInstance.share(accessToken, cookie, id);
         res.status(200).json({ message: `Buff started successfully for ID ${id}.` });
     } catch (error) {
